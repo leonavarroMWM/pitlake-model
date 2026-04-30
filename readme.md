@@ -4,15 +4,15 @@
 ![Panel](https://img.shields.io/badge/UI-Panel-orange)
 ![License](https://img.shields.io/badge/License-Proprietary-red.svg)
 
-An interactive, probabilistic numerical model designed to forecast pit lake filling dynamics under climate and hydrogeological uncertainty. This tool couples a rigorous numerical integration scheme with a modern web-based graphical interface, allowing environmental engineers and geochemists to execute complex water balances without interacting directly with the source code.
+An interactive, probabilistic numerical model designed to forecast pit lake filling dynamics under climate and hydrogeological uncertainty. This tool couples a  numerical integration scheme with a web-based graphical interface, allowing to execute complex water balances without interacting directly with the source code.
 
 ## ✨ Key Capabilities
 
-* **Runge-Kutta 4 (RK4) Engine:** Replaces standard Euler methods with an RK4 integration scheme operating on a monthly timestep. This ensures high stability and accuracy when calculating dynamically coupled area-volume-flux relationships.
-* **Probabilistic Forecasting:** Natively integrates Monte Carlo simulation capabilities to stress-test baseline parameters (precipitation, evaporation, hydraulic leakance, and runoff coefficients), outputting comprehensive statistical confidence intervals (P05, P25, P50, P75, P95).
-* **Interactive GUI:** Built on [HoloViz Panel](https://panel.holoviz.org/), offering a reactive dashboard for defining pit shell geometry (Stage-Area-Volume), configuring meteorological arrays, and establishing model parameters.
-* **Automated HTML Reporting:** Generates a standalone, fully formatted HTML report featuring interactive Plotly charts, data tables, mathematical documentation (via MathJax), and base64-embedded corporate branding for immediate client or regulatory submission.
-* **Zero-Install Deployment:** Features a self-bootstrapping Windows launcher (`run.cmd`) that securely downloads an isolated, portable Python environment. End-users require zero prior software installation to run the dashboard.
+* **Runge-Kutta 4 (RK4) Engine:** RK4 integration scheme operating on a monthly timestep. This ensures stability when calculating dynamically coupled area-volume-flux relationships.
+* **Probabilistic Forecasting:** Integrates Monte Carlo simulation capabilities to stress-test baseline parameters (precipitation, evaporation, hydraulic leakance, and runoff coefficients), outputting comprehensive statistical confidence intervals (P05, P25, P50, P75, P95).
+* **Interactive GUI:** Built on [HoloViz Panel](https://panel.holoviz.org/), shows a reactive dashboard for defining pit shell geometry (Stage-Area-Volume), configuring meteorological arrays, and establishing model parameters.
+* **Automated HTML Reporting:** Generates a standalone formatted HTML report with interactive Plotly charts and data tables.
+* **Zero-Install Deployment:** Self-bootstrapping Windows launcher (`run.cmd`) that downloads an isolated portable Python environment. 
 
 ---
 
