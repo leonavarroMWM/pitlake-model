@@ -38,6 +38,7 @@ Where $\Delta t$ is the timestep (days in the specific month), and $k_n$ represe
 * **Pumping:** Fixed user-defined extraction rate ($Q_{pump}$).
 
 *Note: K<sub>bulk</sub> represents the Bulk Pit Leakance (or specific conductance) and is dimensioned in day<sup>-1</sup>.*
+
 ---
 
 ## 🚀 Getting Started
