@@ -473,7 +473,7 @@ about_md = r"""
 ### ℹ️ About this Model
 
 **Credits**
-This interactive dashboard and the underlying hydrological model were coded by **Leonardo Navarro** with the assistance of the Gemini LLM.
+This interactive dashboard and the underlying hydrological model were coded by **Leo Navarro** and **Ryan Burgess** with the assistance of the Gemini LLM.
 
 ---
 
