@@ -57,6 +57,7 @@ def _run_core_loop_rk4(
     out_out_evaporation = np.empty(n_steps, dtype=np.float64)
     out_out_groundwater = np.empty(n_steps, dtype=np.float64)
     out_out_pumping = np.empty(n_steps, dtype=np.float64)
+    out_out_overflow = np.empty(n_steps, dtype=np.float64)
 
     current_level = float(initial_level)
     current_volume = np.interp(current_level, stage_mRL, stage_volume_from_mRL)
@@ -100,23 +101,28 @@ def _run_core_loop_rk4(
         out_out_groundwater[i] = rk4_avg(6) * dt
         out_out_pumping[i] = rk4_avg(7) * dt
 
+        # --- NEW: Overflow Logic ---
+        raw_new_volume = current_volume + (net_rate * dt)
+        if raw_new_volume > max_volume:
+            out_out_overflow[i] = raw_new_volume - max_volume
+            new_volume = max_volume
+        else:
+            out_out_overflow[i] = 0.0
+            new_volume = max(min_volume, raw_new_volume)
+
         out_net_flow[i] = net_rate
 
-        # Step the volume forward
-        new_volume = max(min_volume, min(max_volume, current_volume + (net_rate * dt)))
-        
         current_volume = new_volume
         current_level = np.interp(current_volume, stage_volume_lookup, stage_mRL_lookup)
 
     return (out_level, out_volume, out_in_direct_rain, out_in_pitwall_runoff, 
             out_in_catchment_runoff, out_in_groundwater, out_out_evaporation, 
-            out_out_groundwater, out_out_pumping, out_net_flow)
-
+            out_out_groundwater, out_out_pumping, out_out_overflow, out_net_flow) # <-- Added Overflow
 class PitLakeModel:
     def __init__(self, staging_data, pit_crest_area, external_catchment_area,
                  pitwall_runoff_coeff, catchment_runoff_coeff, regional_gw_level,
                  lake_conductance, monthly_rainfall, monthly_evaporation,
-                 pumping_rate=0.0):
+                 pumping_rate=0.0, spillway_level=406.0): # <-- ADDED HERE
         
         # Geometry
         self.staging_data = staging_data.sort_values(by='mRL').drop_duplicates(subset='mRL')
@@ -138,9 +144,12 @@ class PitLakeModel:
         self.monthly_rainfall_mm = list(monthly_rainfall)
         self.monthly_evaporation_mm = list(monthly_evaporation)
         self.pumping_rate = float(pumping_rate)
+        self.spillway_level = float(spillway_level) # <-- NEW
         
         self.min_volume = float(self.stage_volume_lookup.min())
-        self.max_volume = float(self.stage_volume_lookup.max())
+        
+        # --- NEW: Cap the max volume strictly at the Spillway Elevation ---
+        self.max_volume = float(np.interp(self.spillway_level, self.stage_mRL, self.stage_volume_from_mRL))
 
     def run_model(self, start_date, end_date, initial_level_mRL, quiet=True):
         # Prepare Data (Monthly)
@@ -173,7 +182,7 @@ class PitLakeModel:
         
         cols = ['level_mRL', 'volume_m3', 'in_direct_rain_m3', 'in_pitwall_runoff_m3',
                 'in_catchment_runoff_m3', 'in_groundwater_m3', 'out_evaporation_m3',
-                'out_groundwater_m3', 'out_pumping_m3', 'net_flow_rate_m3_day']
+                'out_groundwater_m3', 'out_pumping_m3', 'out_overflow_m3', 'net_flow_rate_m3_day']
         
         return pd.DataFrame(dict(zip(cols, res)), index=dates)
 
@@ -184,7 +193,7 @@ def run_monte_carlo(base_params, base_rainfall, base_evaporation, params_to_vary
     
     vars_to_track = ['level_mRL', 'volume_m3', 'in_direct_rain_m3', 'in_pitwall_runoff_m3',
                      'in_catchment_runoff_m3', 'in_groundwater_m3', 'out_evaporation_m3',
-                     'out_groundwater_m3', 'out_pumping_m3', 'net_flow_rate_m3_day']
+                     'out_groundwater_m3', 'out_pumping_m3', 'out_overflow_m3', 'net_flow_rate_m3_day']
     all_results = {v: [] for v in vars_to_track}
 
     for i in range(n_runs):

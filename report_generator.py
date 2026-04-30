@@ -60,15 +60,16 @@ def generate_html_report(base_params, params_to_vary, n_runs, start_date, end_da
             <tr><td>Pitwall Runoff Coeff</td><td>{:.2f}</td></tr>
             <tr><td>Catchment Runoff Coeff</td><td>{:.2f}</td></tr>
             <tr><td>Regional GW Level</td><td>{:.1f} mRL</td></tr>
-            <tr><td>Bulk Specific Conductivity</td><td>{:.4f} 1/day</td></tr>
-            <tr><td>Pumping Rate</td><td>{:.4f} m³/day</td></tr>
+            <tr><td>Bulk Pit Leakance</td><td>{:.4f} 1/day</td></tr>
+            <tr><td>Pumping Rate</td><td>{:.1f} m³/day</td></tr>
+            <tr><td>Spillway Elevation</td><td>{:.1f} mRL</td></tr>
         </tbody>
     </table>
     """.format(
         base_params['pit_crest_area'], base_params['external_catchment_area'],
         base_params['pitwall_runoff_coeff'], base_params['catchment_runoff_coeff'],
         base_params['regional_gw_level'], base_params['lake_conductance'],
-        base_params['pumping_rate']
+        base_params['pumping_rate'], base_params['spillway_level']
     )
 
     mc_html = """
@@ -120,7 +121,7 @@ def generate_html_report(base_params, params_to_vary, n_runs, start_date, end_da
     )
 
     # 3. Assemble HTML
-    full_html = f"""
+    full_html = rf"""
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -195,8 +196,8 @@ def generate_html_report(base_params, params_to_vary, n_runs, start_date, end_da
                 
                 <p><strong>Governing Equation:</strong><br>
                 The volume of the lake at the next timestep $V_{{t+1}}$ is estimated using a weighted average of four slope increments:</p>
-                $$ V_{{t+1}} = V_t + \\frac{{\\Delta t}}{{6}} (k_1 + 2k_2 + 2k_3 + k_4) $$
-                <p>Where $\\Delta t$ is the timestep (days in month), and $k_n$ represents the net flow rate ($Q_{{in}} - Q_{{out}}$) evaluated at intermediate states.</p>
+                $$ V_{{t+1}} = V_t + \frac{{\Delta t}}{{6}} (k_1 + 2k_2 + 2k_3 + k_4) $$
+                <p>Where $\Delta t$ is the timestep (days in month), and $k_n$ represents the net flow rate ($Q_{{in}} - Q_{{out}}$) evaluated at intermediate states.</p>
 
                 <hr style="margin: 20px 0; border-top: 1px dashed #ccc;">
 
@@ -204,20 +205,22 @@ def generate_html_report(base_params, params_to_vary, n_runs, start_date, end_da
                     <div class="col-md-6">
                         <h5>Inflow Components</h5>
                         <ul>
-                            <li><strong>Direct Rainfall:</strong> $$ Q_{{rain}} = A(L_t) \\cdot P_{{monthly}} $$</li>
-                            <li><strong>Pit Wall Runoff:</strong> $$ Q_{{wall}} = (A_{{crest}} - A(L_t)) \\cdot P_{{monthly}} \\cdot C_{{wall}} $$</li>
-                            <li><strong>Catchment Runoff:</strong> $$ Q_{{catch}} = A_{{catch}} \\cdot P_{{monthly}} \\cdot C_{{catch}} $$</li>
+                            <li><strong>Direct Rainfall:</strong> $$ Q_{{rain}} = A(L_t) \cdot P_{{monthly}} $$</li>
+                            <li><strong>Pit Wall Runoff:</strong> $$ Q_{{wall}} = (A_{{crest}} - A(L_t)) \cdot P_{{monthly}} \cdot C_{{wall}} $$</li>
+                            <li><strong>Catchment Runoff:</strong> $$ Q_{{catch}} = A_{{catch}} \cdot P_{{monthly}} \cdot C_{{catch}} $$</li>
                             <li><strong>Groundwater Inflow:</strong> <br><small>If $H_{{gw}} > L_t$:</small>
-                                $$ Q_{{gw,in}} = K_{{bulk}} \\cdot A(L_t) \\cdot (H_{{gw}} - L_t) $$</li>
+                                $$ Q_{{gw,in}} = K_{{bulk}} \cdot A(L_t) \cdot (H_{{gw}} - L_t) $$</li>
                         </ul>
                     </div>
                     <div class="col-md-6">
                         <h5>Outflow Components</h5>
                         <ul>
-                            <li><strong>Evaporation:</strong> $$ Q_{{evap}} = A(L_t) \\cdot E_{{monthly}} $$</li>
+                            <li><strong>Evaporation:</strong> $$ Q_{{evap}} = A(L_t) \cdot E_{{monthly}} $$</li>
                             <li><strong>Groundwater Outflow:</strong> <br><small>If $L_t > H_{{gw}}$:</small>
-                                $$ Q_{{gw,out}} = K_{{bulk}} \\cdot A(L_t) \\cdot (L_t - H_{{gw}}) $$</li>
+                                $$ Q_{{gw,out}} = K_{{bulk}} \cdot A(L_t) \cdot (L_t - H_{{gw}}) $$</li>
                             <li><strong>Pumping:</strong> Fixed rate $Q_{{pump}}$</li>
+                            <li><strong>Overflow:</strong> <br><small>If $V_{{t+1}} > V_{{max}}$:</small>
+                                $$ Q_{{overflow}} = V_{{t+1}} - V_{{max}} $$</li>
                         </ul>
                     </div>
                 </div>
