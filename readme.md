@@ -37,8 +37,7 @@ Where $\Delta t$ is the timestep (days in the specific month), and $k_n$ represe
   $$Q_{gw,out} = K_{bulk} \cdot A_t \cdot (L_t - H_{gw})$$
 * **Pumping:** Fixed user-defined extraction rate ($Q_{pump}$).
 
-*Note: $K_{bulk}$ represents the Bulk Pit Leakance (or specific conductance) and is dimensioned in $\text{day}^{-1}$.*
-
+*Note: K<sub>bulk</sub> represents the Bulk Pit Leakance (or specific conductance) and is dimensioned in day<sup>-1</sup>.*
 ---
 
 ## 🚀 Getting Started
