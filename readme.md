@@ -9,7 +9,7 @@ An interactive, probabilistic numerical model designed to forecast pit lake fill
 ## ✨ Key Capabilities
 
 * **Runge-Kutta 4 (RK4) Engine:** RK4 integration scheme operating on a monthly timestep. This ensures stability when calculating dynamically coupled area-volume-flux relationships.
-* **Probabilistic Forecasting:** Integrates Monte Carlo simulation capabilities to stress-test baseline parameters (precipitation, evaporation, hydraulic leakance, and runoff coefficients), outputting comprehensive statistical confidence intervals (P05, P25, P50, P75, P95).
+* **Probabilistic Forecasting:** Integrates Monte Carlo simulation capabilities to stress-test baseline parameters (precipitation, evaporation, hydraulic leakance, and runoff coefficients), outputting percentiles (P05, P25, P50, P75, P95).
 * **Interactive GUI:** Built on [HoloViz Panel](https://panel.holoviz.org/), shows a reactive dashboard for defining pit shell geometry (Stage-Area-Volume), configuring meteorological arrays, and establishing model parameters.
 * **Automated HTML Reporting:** Generates a standalone formatted HTML report with interactive Plotly charts and data tables.
 * **Zero-Install Deployment:** Self-bootstrapping Windows launcher (`run.cmd`) that downloads an isolated portable Python environment. 
