@@ -278,8 +278,8 @@ def generate_html_report(base_params, params_to_vary, n_runs, start_date, end_da
             </div>
 
             <div class="footer">
-                <p><strong>Pit Lake Model v2.0</strong> | Generated Automatically</p>
-                <p class="credits">Code created by <strong>Leonardo Navarro</strong> (Hydrogeochem Group).</p>
+                <p><strong>Pit Lake Model v1.5</strong> | Generated Automatically</p>
+                <p class="credits"></p>
             </div>
         </div>
     </body>
