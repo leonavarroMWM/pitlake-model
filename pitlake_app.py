@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Pit Lake Model Interactive Dashboard
-Includes: Auth (Secrets), Met Table, Geometry, HTML Export, Docs, Favicon, Extended Plots & Tables
+v15
 """
 
 import pandas as pd
@@ -129,7 +129,7 @@ def create_flux_plot_plotly(percentile_results, var_list, color_rgb, title, titl
     fig.update_layout(title=f'{title} - {title_suffix}', height=300 * rows, margin=dict(l=20, r=20, t=60, b=20), hovermode="x unified")
     return fig
 
-def create_water_balance_table(percentile_results, max_volume_limit):
+def create_water_balance_table(percentile_results):
     in_rain = percentile_results['in_direct_rain_m3']['P50'].sum()
     in_pitwall = percentile_results['in_pitwall_runoff_m3']['P50'].sum()
     in_catchment = percentile_results['in_catchment_runoff_m3']['P50'].sum()
@@ -137,25 +137,14 @@ def create_water_balance_table(percentile_results, max_volume_limit):
     out_evap = percentile_results['out_evaporation_m3']['P50'].sum()
     out_gw = percentile_results['out_groundwater_m3']['P50'].sum()
     out_pump = percentile_results['out_pumping_m3']['P50'].sum()
-    out_overflow = percentile_results['out_overflow_m3']['P50'].sum() # <-- NEW
-    
     total_in = in_rain + in_pitwall + in_catchment + in_gw
-    total_out = out_evap + out_gw + out_pump + out_overflow
+    total_out = out_evap + out_gw + out_pump
     net_flux = total_in - total_out
-    
     vol_df = percentile_results['volume_m3']
-    last_net_flow_rate = percentile_results['net_flow_rate_m3_day']['P50'].iloc[-1]
-    days_in_last_month = percentile_results['net_flow_rate_m3_day'].index[-1].days_in_month
-    
-    # Cap the final estimated volume at the maximum pit capacity
-    raw_final_volume = vol_df['P50'].iloc[-1] + (last_net_flow_rate * days_in_last_month)
-    final_end_volume = min(max_volume_limit, raw_final_volume)
-    
-    delta_storage = final_end_volume - vol_df['P50'].iloc[0]
-    
+    delta_storage = vol_df['P50'].iloc[-1] - vol_df['P50'].iloc[0]
     data = {
-        "Component": ["IN: Rain", "IN: Pitwall", "IN: Catchment", "IN: GW", "OUT: Evap", "OUT: GW", "OUT: Pump", "OUT: Overflow", "---", "Total In", "Total Out", "Net Flux", "Change Storage", "Balance"],
-        "Total Volume (m³)": [in_rain, in_pitwall, in_catchment, in_gw, -out_evap, -out_gw, -out_pump, -out_overflow, np.nan, total_in, -total_out, net_flux, delta_storage, net_flux - delta_storage]
+        "Component": ["IN: Rain", "IN: Pitwall", "IN: Catchment", "IN: GW", "OUT: Evap", "OUT: GW", "OUT: Pump", "---", "Total In", "Total Out", "Net Flux", "Change Storage", "Balance"],
+        "Total Volume (m³)": [in_rain, in_pitwall, in_catchment, in_gw, -out_evap, -out_gw, -out_pump, np.nan, total_in, -total_out, net_flux, delta_storage, net_flux - delta_storage]
     }
     return pd.DataFrame(data).set_index("Component")
 
@@ -167,8 +156,7 @@ def create_prob_summary_table(percentile_results):
         'GW Inflow': 'in_groundwater_m3',
         'Evaporation': 'out_evaporation_m3',
         'GW Outflow': 'out_groundwater_m3',
-        'Pumping': 'out_pumping_m3',
-        'Overflow': 'out_overflow_m3' # <-- NEW
+        'Pumping': 'out_pumping_m3'
     }
     data = {}
     for label, var_key in vars_map.items():
@@ -183,13 +171,13 @@ def create_prob_summary_table(percentile_results):
     return pd.DataFrame(data).T
 
 def create_annual_table(percentile_results, p_col='P50'):
-    flux_vars = ['in_direct_rain_m3', 'in_pitwall_runoff_m3', 'in_catchment_runoff_m3', 'in_groundwater_m3', 'out_evaporation_m3', 'out_groundwater_m3', 'out_pumping_m3', 'out_overflow_m3', 'volume_m3']
+    flux_vars = ['in_direct_rain_m3', 'in_pitwall_runoff_m3', 'in_catchment_runoff_m3', 'in_groundwater_m3', 'out_evaporation_m3', 'out_groundwater_m3', 'out_pumping_m3', 'volume_m3']
     annual_dfs = []
     for var in flux_vars:
         if var == 'volume_m3':
-            annual_val = percentile_results[var][p_col].resample('YE').mean()
+            annual_val = percentile_results[var][p_col].resample('A').mean()
         else:
-            annual_val = percentile_results[var][p_col].resample('YE').sum()
+            annual_val = percentile_results[var][p_col].resample('A').sum()
         annual_val.name = var.replace('_m3', '').replace('_', ' ').title()
         annual_dfs.append(annual_val)
     df = pd.concat(annual_dfs, axis=1)
@@ -234,18 +222,20 @@ w_crest_area = pn.widgets.FloatInput(name='Pit Crest Area (m²)', value=300000.0
 w_catchment_area = pn.widgets.FloatInput(name='External Catchment Area (m²)', value=1000000.0)
 w_pw_coeff = pn.widgets.FloatSlider(name='Pitwall Runoff Coeff (0-1)', start=0, end=1, step=0.01, value=0.6)
 w_c_coeff = pn.widgets.FloatSlider(name='Catchment Runoff Coeff (0-1)', start=0, end=1, step=0.01, value=0.3)
-w_gw_level = pn.widgets.FloatInput(name='Regional GW Level (mRL)', value=380)
-w_conductance = pn.widgets.FloatInput(name='Bulk Pit Specific Conductivity (1/day)', value=0.01)
+w_gw_level = pn.widgets.FloatInput(name='Regional GW Level (mRL)', value=400.0)
+w_hyd_conductivity = pn.widgets.FloatInput(name='Hydraulic Conductivity (K, m/day)', value=0.01)
+w_gw_distance = pn.widgets.FloatInput(name='Distance to GW Boundary (L, m)', value=100.0)
 w_pumping = pn.widgets.FloatInput(name='Pumping Rate (m³/day)', value=0.0)
-w_spillway = pn.widgets.FloatInput(name='Spillway Elevation (mRL)', value=406.0) # <-- NEW
 
+# Changed from FloatSlider to FloatInput to allow unbounded values (CV > 1)
 w_n_runs = pn.widgets.IntInput(name='Number of Runs (N)', value=50, start=1, end=10000, step=10)
-w_var_conductance = pn.widgets.FloatSlider(name='Var: Conductance (stdev %)', start=0, end=1, step=0.01, value=0.2)
-w_var_pw_coeff = pn.widgets.FloatSlider(name='Var: Pitwall Coeff (stdev %)', start=0, end=1, step=0.01, value=0.1)
-w_var_c_coeff = pn.widgets.FloatSlider(name='Var: Catchment Coeff (stdev %)', start=0, end=1, step=0.01, value=0.1)
-w_var_gw_level = pn.widgets.FloatSlider(name='Var: GW Level (stdev %)', start=0, end=1, step=0.01, value=0.05)
-w_var_rainfall = pn.widgets.FloatSlider(name='Var: Rainfall (stdev %)', start=0, end=1, step=0.01, value=0.1)
-w_var_evap = pn.widgets.FloatSlider(name='Var: Evaporation (stdev %)', start=0, end=1, step=0.01, value=0.1)
+w_var_hyd_conductivity = pn.widgets.FloatInput(name='Var: Hyd. Conductivity (CV)', value=0.2, step=0.05)
+w_var_pw_coeff = pn.widgets.FloatInput(name='Var: Pitwall Coeff (CV)', value=0.1, step=0.05)
+w_var_c_coeff = pn.widgets.FloatInput(name='Var: Catchment Coeff (CV)', value=0.1, step=0.05)
+w_var_gw_level = pn.widgets.FloatInput(name='Var: GW Level (CV)', value=0.05, step=0.05)
+w_var_rainfall = pn.widgets.FloatInput(name='Var: Rainfall (CV)', value=0.1, step=0.05)
+w_var_evap = pn.widgets.FloatInput(name='Var: Evaporation (CV)', value=0.1, step=0.05)
+
 w_start_date = pn.widgets.TextInput(name='Start Date', value='2025-01-01')
 w_end_date = pn.widgets.TextInput(name='End Date', value='2030-12-31')
 w_initial_level = pn.widgets.FloatInput(name='Initial Level (mRL)', value=290.0)
@@ -262,7 +252,6 @@ plot_pane_inflow = pn.pane.Plotly(None, sizing_mode='stretch_width')
 plot_pane_outflow = pn.pane.Plotly(None, sizing_mode='stretch_width')
 table_balance = pn.widgets.Tabulator(None, sizing_mode='stretch_width', disabled=True, layout='fit_data')
 table_annual = pn.widgets.Tabulator(None, sizing_mode='stretch_width', disabled=True, layout='fit_data')
-
 
 # ##################################################################
 # --- WORKER & LOGIC ---
@@ -299,13 +288,9 @@ def _simulation_worker(doc, base_params, base_rainfall, base_evap, params_to_var
         title_suffix = f"N={n_runs}, RK4 Monthly"
         fig_level = create_level_plot_plotly(percentile_results['level_mRL'], base_params, active_staging_df, title_suffix)
         fig_inflow = create_flux_plot_plotly(percentile_results, ['in_direct_rain_m3', 'in_pitwall_runoff_m3', 'in_catchment_runoff_m3', 'in_groundwater_m3'], '31, 119, 180', 'Inflows', title_suffix)
-        fig_outflow = create_flux_plot_plotly(percentile_results, ['out_evaporation_m3', 'out_groundwater_m3', 'out_pumping_m3', 'out_overflow_m3'], '214, 39, 40', 'Outflows', title_suffix)
+        fig_outflow = create_flux_plot_plotly(percentile_results, ['out_evaporation_m3', 'out_groundwater_m3', 'out_pumping_m3'], '214, 39, 40', 'Outflows', title_suffix)
         
-        # Interpolate the maximum volume limit based on the Spillway Level
-        spillway_mRL = base_params['spillway_level']
-        max_vol_limit = float(np.interp(spillway_mRL, active_staging_df['mRL'], active_staging_df['volume_m3']))
-        
-        df_balance = create_water_balance_table(percentile_results, max_vol_limit)
+        df_balance = create_water_balance_table(percentile_results)
         
         all_annual_tables = {}
         for p_key in ['P05', 'P25', 'P50', 'P75', 'P95']:
@@ -394,7 +379,6 @@ def on_click_run(event):
         if np.isnan(base_rainfall).any() or np.isnan(base_evap).any():
              raise ValueError("Met Table contains non-numeric data.")
 
-        # --- The Dictionary in question ---
         base_params = {
             'staging_data': staging_df_to_use, 
             'pit_crest_area': float(w_crest_area.value),
@@ -402,13 +386,12 @@ def on_click_run(event):
             'pitwall_runoff_coeff': float(w_pw_coeff.value),
             'catchment_runoff_coeff': float(w_c_coeff.value),
             'regional_gw_level': float(w_gw_level.value),
-            'lake_conductance': float(w_conductance.value),
-            'pumping_rate': float(w_pumping.value),
-            'spillway_level': float(w_spillway.value)
+            'hydraulic_conductivity': float(w_hyd_conductivity.value),
+            'gw_distance': float(w_gw_distance.value),
+            'pumping_rate': float(w_pumping.value)
         }
-        
         params_to_vary = {
-            'lake_conductance': float(w_var_conductance.value),
+            'hydraulic_conductivity': float(w_var_hyd_conductivity.value),
             'pitwall_runoff_coeff': float(w_var_pw_coeff.value),
             'catchment_runoff_coeff': float(w_var_c_coeff.value),
             'regional_gw_level': float(w_var_gw_level.value),
@@ -433,14 +416,15 @@ def on_click_run(event):
 run_button.on_click(on_click_run)
 
 # ##################################################################
-# --- LAYOUT & LOGIN GATE ---
+# --- LAYOUT & MAIN APP ---
 # ##################################################################
 
 params_tab = pn.Column(
     pn.pane.Markdown("### Parameters: Baseline", styles=header_style),
-    pn.Row(pn.Column(w_crest_area, w_catchment_area), pn.Column(w_gw_level, w_conductance)),
-    pn.Row(pn.Column(w_pw_coeff, w_c_coeff), pn.Column(w_pumping, w_spillway)) # <-- ADDED HERE
+    pn.Row(pn.Column(w_crest_area, w_catchment_area), pn.Column(w_gw_level, w_gw_distance)),
+    pn.Row(pn.Column(w_pw_coeff, w_c_coeff), pn.Column(w_hyd_conductivity, w_pumping))
 )
+
 geometry_tab = pn.Column(
     pn.pane.Markdown("### 📐 Pit Shell Geometry", styles=header_style),
     pn.pane.Markdown("Edit the values below. Rows must be sorted by mRL."),
@@ -456,7 +440,7 @@ met_tab = pn.Column(
 settings_tab = pn.Column(
     pn.pane.Markdown("### 🎲 Settings: Monte Carlo", styles=header_style),
     w_n_runs,
-    pn.Row(w_var_conductance, w_var_gw_level),
+    pn.Row(w_var_hyd_conductivity, w_var_gw_level),
     pn.Row(w_var_pw_coeff, w_var_c_coeff),
     pn.Row(w_var_rainfall, w_var_evap),
     pn.pane.Markdown("### ⚙️ Settings: Simulation", styles=header_style),
@@ -473,7 +457,7 @@ about_md = r"""
 ### ℹ️ About this Model
 
 **Credits**
-This interactive dashboard and the underlying hydrological model were coded by **Leo Navarro** and **Ryan Burgess** with the assistance of the Gemini LLM.
+This interactive dashboard and the underlying hydrological model were coded by **Leonardo Navarro** with the assistance of the Gemini LLM.
 
 ---
 
@@ -493,23 +477,23 @@ $$ L_t = f_{level}(V_t) $$
 $$ A_t = f_{area}(L_t) $$
 
 **3. Inflow Components**
-* **Direct Rainfall ($$Q_{rain}$$):**
+* **Direct Rainfall ($Q_{rain}$):**
     $$ Q_{rain} = A_t \cdot P_{monthly} $$
-* **Pit Wall Runoff ($$Q_{wall}$$):**
+* **Pit Wall Runoff ($Q_{wall}$):**
     $$ Q_{wall} = (A_{crest} - A_t) \cdot P_{monthly} \cdot C_{wall} $$
-* **External Catchment ($$Q_{catch}$$):**
+* **External Catchment ($Q_{catch}$):**
     $$ Q_{catch} = A_{catch} \cdot P_{monthly} \cdot C_{catch} $$
 * **Groundwater Inflow ($Q_{gw,in}$):**
     Occurs when Regional GW Level ($H_{gw}$) > Lake Level ($L_t$).
-    $$ Q_{gw,in} = K_{bulk} \cdot A_t \cdot (H_{gw} - L_t) $$
+    $$ Q_{gw,in} = K \cdot A_t \cdot \frac{H_{gw} - L_t}{L_{dist}} $$
 
 **4. Outflow Components**
-* **Evaporation ($$Q_{evap}$$):**
+* **Evaporation ($Q_{evap}$):**
     $$ Q_{evap} = A_t \cdot E_{monthly} $$
 * **Groundwater Outflow ($Q_{gw,out}$):**
     Occurs when Lake Level ($L_t$) > Regional GW Level ($H_{gw}$).
-    $$ Q_{gw,out} = K_{bulk} \cdot A_t \cdot (L_t - H_{gw}) $$
-* **Pumping ($$Q_{pump}$$):**
+    $$ Q_{gw,out} = K \cdot A_t \cdot \frac{L_t - H_{gw}}{L_{dist}} $$
+* **Pumping ($Q_{pump}$):**
     Fixed user-defined rate.
 """
 
@@ -547,7 +531,7 @@ app_template = pn.template.BootstrapTemplate(
     favicon="logo_favicon.png"
 )
 
-# CHANGE THESE TWO LINES:
+# Directly append the dashboard and sidebar rather than the placeholders
 app_template.main.append(dashboard_view)
 app_template.sidebar.append(sidebar_tabs)
 
